@@ -1,0 +1,5 @@
+dist/
+perfil-feir*.json*
+*.log
+*.tmp
+
