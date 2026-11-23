@@ -4,11 +4,15 @@ Aplicativo comunitário para Windows que transforma controles USB compatíveis c
 
 ## Compatibilidade
 
-- Windows 10 ou 11 x64 com Windows PowerShell 5.1 e .NET Framework 4.8.
+- Versões-alvo: Windows 10 22H2 e Windows 11 x64. Requer .NET Framework 4.8 ou posterior e Windows PowerShell 5.1. Windows x86, ARM64 e versões antigas não foram validados.
 - Controles USB DirectInput com ID `VID_0810&PID_0001`. Esse ID é compartilhado por vários modelos, e o comportamento dos eixos pode variar.
 - Até dois controles, com perfis separados. O Windows detectou dois DualShock 4 virtuais simultâneos. O teste completo com dois controles físicos está pendente.
 
 ## Instalação
+
+Baixe **Feir-Controller-Setup-x64.exe** na [versão v0.1.0](https://github.com/lucasfreitas611/feir-controller/releases/tag/v0.1.0). Instale primeiro o Visual C++ x64 e o ViGEmBus pelos links abaixo. O instalador do Feir baixa bibliotecas verificadas por SHA-256 e instala o aplicativo na sua conta, com atalho no menu Iniciar. O instalador ainda não tem assinatura digital.
+
+### Alternativa pelo código-fonte
 
 1. Instale o [Microsoft Visual C++ Redistributable x64](https://aka.ms/vc14/vc_redist.x64.exe) e o [ViGEmBus 1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0). O ViGEmBus foi arquivado pelo mantenedor.
 2. Baixe o código em **Code → Download ZIP** e extraia em uma pasta sua, como Documentos.
@@ -42,3 +46,9 @@ Feche o aplicativo antes de recompilar. Os perfis são arquivos JSON em `dist`. 
 
 O build baixa as bibliotecas publicadas no [UCR v0.9.0](https://github.com/Snoothy/UCR/releases/tag/v0.9.0). O aplicativo usa [SharpDX](https://github.com/sharpdx/SharpDX) para DirectInput e [ViGEm](https://github.com/nefarius/ViGEmBus) para a saída virtual. As dependências têm licenças próprias.
 
+
+Para gerar o instalador, execute `.\package.ps1` no Windows PowerShell.
+
+## Licença
+
+[MIT](LICENSE) para o código original do Feir Controller.
