@@ -1,6 +1,6 @@
-# Como contribuir
+# Contribuindo com o Feir Controll
 
-Abra uma issue para relatar um problema ou propor uma melhoria. Informe a versão do Windows, o VID/PID do controle, quantos controles estavam conectados, os passos para reproduzir e o resultado esperado. Remova informações pessoais de capturas e registros.
+Para relatar um problema, informe a versão do Windows, o ID mostrado em **Detectar controles**, o número de controles conectados, os passos para reproduzir e o resultado esperado. Remova informações pessoais de capturas e registros.
 
-Para enviar uma alteração, faça um fork, crie uma branch, compile com `build.ps1` e abra um pull request. Explique o que mudou e como testou. Em mudanças de mapeamento, confira os perfis, a entrada em `joy.cpl` e, se possível, a reconexão de dois controles. Para mudanças visuais, confira a bandeja e a reabertura pelo atalho.
+Para enviar uma alteração, faça um fork, crie uma branch, compile com **.\build.ps1** e abra um pull request. Explique o que mudou e como testou. Para alterações na emulação, confira o modo PlayStation, a vibração na Steam e o comportamento ao reconectar. Para alterações na interface, confira os três idiomas, o salvamento das preferências e a reabertura pela bandeja.
 

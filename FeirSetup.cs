@@ -38,14 +38,14 @@ internal static class FeirSetup
                     throw new InvalidOperationException(shell.Streams.Error[0].ToString());
             }
             if (!test)
-                MessageBox.Show("Instalação concluída. Abra Feir Controller pelo menu Iniciar.",
-                                "Feir Controller", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Instalação concluída. Abra Feir Controll pelo menu Iniciar.",
+                                "Feir Controll", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return 0;
         }
         catch (Exception error)
         {
             if (test) Console.Error.WriteLine(error);
-            else MessageBox.Show(error.Message, "Feir Controller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else MessageBox.Show(error.Message, "Feir Controll", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
         finally
@@ -54,4 +54,5 @@ internal static class FeirSetup
         }
     }
 }
+
 

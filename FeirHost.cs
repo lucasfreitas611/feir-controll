@@ -38,7 +38,7 @@ namespace Feir
             }
             catch (Exception error)
             {
-                MessageBox.Show(error.Message, "Feir Controller", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(error.Message, "Feir Controll", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
@@ -103,9 +103,7 @@ namespace Feir
             Color fill = pressed && hovered ? FlatAppearance.MouseDownBackColor :
                          hovered ? FlatAppearance.MouseOverBackColor : BackColor;
             RoundedPaint.Fill(this, e.Graphics, fill, 11);
-            TextRenderer.DrawText(e.Graphics, Text, Font, ClientRectangle, ForeColor,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
-                TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+            FeirTypography.Draw(e.Graphics, Text, Font, ForeColor, ClientRectangle, System.Drawing.StringAlignment.Center);
             if (Focused && ShowFocusCues)
             {
                 var focus = Rectangle.Inflate(ClientRectangle, -5, -5);
@@ -114,4 +112,7 @@ namespace Feir
         }
     }
 }
+
+
+
 

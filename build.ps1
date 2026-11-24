@@ -36,17 +36,30 @@ try {
         try { $resource.CopyTo($file) } finally { $file.Dispose() }
     } finally { $resource.Dispose() }
 
-    foreach ($asset in 'Feir-DualShock4.ico','Feir-DualShock4.ps1','Feir-Interface.ps1') {
+
+    $viiperArchive = Join-Path $download 'libVIIPER.zip'
+    Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/DualSenseClient/VIIPER/releases/download/v1.0.1/libVIIPER-windows-amd64.zip' -OutFile $viiperArchive
+    if ((Get-FileHash -LiteralPath $viiperArchive -Algorithm SHA256).Hash -ne 'AC1281FEA5663E20B554DF0D2ABF0868B2223CE664465A4B02CF74B3F1C470A9') {
+        throw 'O SHA-256 da biblioteca VIIPER não corresponde ao esperado.'
+    }
+    $viiper = Join-Path $download 'viiper'
+    Expand-Archive -LiteralPath $viiperArchive -DestinationPath $viiper
+    Copy-Item -LiteralPath (Join-Path $viiper 'libVIIPER.dll') -Destination $dist -Force
+    Copy-Item -LiteralPath (Join-Path $viiper 'licenses.txt') -Destination (Join-Path $dist 'VIIPER-licenses.txt') -Force
+
+    foreach ($asset in 'Feir-Controll.ico','FeirControll-Languages.json','LICENSE','Feir-DualShock4.ps1','Feir-Interface.ps1') {
         Copy-Item -LiteralPath (Join-Path $root $asset) -Destination $dist -Force
     }
     $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-    $exe = Join-Path $dist 'Feir Controller.exe'
+    $exe = Join-Path $dist 'Feir Controll.exe'
     $automation = [Management.Automation.PowerShell].Assembly.Location
     $flags = @('/nologo','/target:winexe','/platform:x64',"/out:$exe","/r:$automation",'/r:System.Windows.Forms.dll','/r:System.Drawing.dll')
-    $flags += "/win32icon:$(Join-Path $root 'Feir-DualShock4.ico')"
+    $flags += "/win32icon:$(Join-Path $root 'Feir-Controll.ico')"
     $flags += "/win32manifest:$(Join-Path $root 'FeirHost.manifest')"
-    & $csc @flags (Join-Path $root 'FeirHost.cs')
-    if ($LASTEXITCODE -ne 0) { throw 'Não foi possível compilar o Feir Controller.' }
+    $flags += "/r:$(Join-Path (Join-Path $dist 'UCR') $libraries[2])"
+    $sources = 'FeirHost.cs','FeirControllTheme.cs','FeirRumble.cs','FeirViiper.cs' | ForEach-Object { Join-Path $root $_ }
+    & $csc @flags @sources
+    if ($LASTEXITCODE -ne 0) { throw 'Não foi possível compilar o Feir Controll.' }
     Write-Host "Compilado: $exe"
 } finally {
     $resolved = (Resolve-Path -LiteralPath $download).Path
@@ -54,4 +67,6 @@ try {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
 }
+
+
 

@@ -1,5 +1,7 @@
 dist/
 perfil-feir*.json*
+perfil-feir*.gain
+perfil-feir*.rumble
+feir-controll-idioma.txt
 *.log
 *.tmp
-
