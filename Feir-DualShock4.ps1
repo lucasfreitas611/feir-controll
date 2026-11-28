@@ -28,7 +28,8 @@ function Close-FeirSlot($slot) {
     if ($slot.Target) { $slot.Target.Dispose(); $slot.Target = $null }
     if ($slot.Joystick) { $slot.Joystick.Dispose(); $slot.Joystick = $null }
     $slot.Connected = $false
-    $slot.Input = [bool[]]::new(12)
+    $slot.DigitalDpad = $false
+    [Array]::Clear($slot.Input, 0, $slot.Input.Length)
 }
 
 $inputApi = $null
@@ -64,7 +65,7 @@ try {
     $client = [Feir.ViiperServer]::new()
     $mapping = [Nefarius.ViGEm.Client.Targets.DualShock4.DualShock4Buttons]
     $buttonNames = 'Triangle','Circle','Cross','Square','ShoulderLeft','ShoulderRight','TriggerLeft','TriggerRight','Share','Options','ThumbLeft','ThumbRight'
-    $masks = @($buttonNames | ForEach-Object { [int][Enum]::Parse($mapping, $_) })
+    [int[]]$masks = @($buttonNames | ForEach-Object { [int][Enum]::Parse($mapping, $_) })
 
 
     function Show-FeirDevices($devices) {
@@ -117,12 +118,75 @@ try {
         $dialog.Show($form)
     }
 
+    function Show-FeirControllerPreview {
+        if ($session.PreviewWindow -and -not $session.PreviewWindow.IsDisposed) {
+            $session.PreviewWindow.Close()
+        }
+
+        $session.PreviewSlot = $session.Selected
+        $slotName = if ($session.PreviewSlot -eq 0) { 'Controle 1' } else { 'Controle 2' }
+        $dialog = [Feir.SignalForm]::new()
+        $dialog.Text = (& $translate 'Testar controle') + ' · ' + (& $translate $slotName)
+        $dialog.Icon = $form.Icon
+        $dialog.BackColor = $form.BackColor
+        $dialog.ForeColor = $form.ForeColor
+        $dialog.ClientSize = [Drawing.Size]::new(590, 394)
+        $dialog.AutoScaleMode = 'Dpi'
+        $dialog.AutoScaleDimensions = [Drawing.SizeF]::new(96, 96)
+        $dialog.MinimumSize = [Drawing.Size]::new(485, 365)
+        $dialog.StartPosition = 'CenterParent'
+        $dialog.ShowInTaskbar = $false
+
+        $view = [Feir.ControllerPreview]::new([int[]]$masks)
+        $view.SetBounds(15, 37, 560, 310)
+        $view.Anchor = 'Top, Bottom, Left, Right'
+        $view.BackColor = $dialog.BackColor
+        $view.ForeColor = $dialog.ForeColor
+        $view.AccessibleName = & $translate 'Testar controle'
+        $dialog.Controls.Add($view)
+
+        $connection = [Feir.FeirLabel]::new()
+        $connection.SetBounds(20, 8, 550, 26)
+        $connection.ForeColor = $dialog.ForeColor
+        $dialog.Controls.Add($connection)
+
+        $note = [Feir.FeirLabel]::new()
+        $note.SetBounds(20, 351, 550, 28)
+        $note.Anchor = 'Bottom, Left, Right'
+        $note.ForeColor = $dialog.ForeColor
+        $note.Text = & $translate 'Mostra a saída do DualShock 4 com o mapeamento salvo.'
+        $dialog.Controls.Add($note)
+
+        $session.PreviewWindow = $dialog
+        $session.PreviewView = $view
+        $session.PreviewConnection = $connection
+        $dialog.Show($form)
+    }
+
+    function Update-FeirControllerPreview {
+        $slot = $session.Slots[$session.PreviewSlot]
+        $label = if ($slot.Connected) { '●  Conectado' } else { '○  Desconectado' }
+        $caption = & $translate $label
+        if ($session.PreviewConnection.Text -ne $caption) { $session.PreviewConnection.Text = $caption }
+        if ($slot.Connected) {
+            $report = $slot.Report
+            $session.PreviewView.ShowReport($report.Buttons, $report.LeftThumbX, $report.LeftThumbY,
+                $report.RightThumbX, $report.RightThumbY)
+        } else {
+            $session.PreviewView.ShowReport(8, 128, 128, 128, 128)
+        }
+    }
+
     $scanAt = 0
     $paintAt = 0
     $clock = [Diagnostics.Stopwatch]::StartNew()
     while ($session.Running) {
         Update-FeirWindow
         if (-not $session.Running) { break }
+        if ($session.PreviewRequested) {
+            $session.PreviewRequested = $false
+            Show-FeirControllerPreview
+        }
         $now = $clock.ElapsedMilliseconds
         if ($now -ge $scanAt -or $session.ScanRequested) {
             $scanAt = $now + 900
@@ -172,9 +236,15 @@ try {
                 if ($slotIndex -eq $session.Selected) { $session.LearnIndex = -1 }
                 continue
             }
+            $inputState = $slot.PendingInput
+            $pov = $state.PointOfViewControllers
+            $slot.DigitalDpad = [Feir.DirectionalPad]::IsDigitalMode($state.X, $state.Y, $state.Z,
+                $state.RotationZ, $pov, $slot.DigitalDpad)
+            [Feir.DirectionalPad]::Read($state.Buttons, $pov, $inputState)
+            if ($slot.DigitalDpad) { [Feir.DirectionalPad]::ReadDigitalAxes($state.X, $state.Y, $inputState) }
             if ($slotIndex -eq $session.Selected -and $session.LearnIndex -ge 0) {
-                for ($i = 0; $i -lt 12; $i++) {
-                    if ($state.Buttons[$i] -and -not $slot.Input[$i]) {
+                for ($i = 0; $i -lt $inputState.Length; $i++) {
+                    if ($inputState[$i] -and -not $slot.Input[$i]) {
                         $row = $session.LearnIndex
                         $session.LearnIndex = -1
                         $slot.Draft[$row] = $i
@@ -187,21 +257,15 @@ try {
                     }
                 }
             }
-            $slot.Input = $state.Buttons
-            $buttons = 8
-            if ($state.PointOfViewControllers[0] -ge 0) {
-                $buttons = [int][Math]::Floor($state.PointOfViewControllers[0] / 4500) % 8
-            }
-            for ($i = 0; $i -lt $masks.Count; $i++) {
-                $physical = $slot.Map[$i]
-                if ($physical -ge 0 -and $state.Buttons[$physical]) { $buttons = $buttons -bor $masks[$i] }
-            }
+            $slot.PendingInput = $slot.Input
+            $slot.Input = $inputState
+            $buttons = [Feir.DirectionalPad]::MapReport($inputState, $slot.Map, $masks)
             $report = $slot.Report
             $report.Buttons = [uint16]$buttons
-            $report.LeftThumbX = [byte]($state.X -shr 8)
-            $report.LeftThumbY = [byte]($state.Y -shr 8)
-            $report.RightThumbX = [byte]($state.RotationZ -shr 8)
-            $report.RightThumbY = [byte]($state.Z -shr 8)
+            $report.LeftThumbX = if ($slot.DigitalDpad) { [byte]128 } else { [byte]($state.X -shr 8) }
+            $report.LeftThumbY = if ($slot.DigitalDpad) { [byte]128 } else { [byte]($state.Y -shr 8) }
+            $report.RightThumbX = if ($slot.DigitalDpad) { [byte]128 } else { [byte]($state.RotationZ -shr 8) }
+            $report.RightThumbY = if ($slot.DigitalDpad) { [byte]128 } else { [byte]($state.Z -shr 8) }
             $report.LeftTrigger = [byte](255 * [int](0 -ne ($buttons -band $masks[6])))
             $report.RightTrigger = [byte](255 * [int](0 -ne ($buttons -band $masks[7])))
             try { $slot.Target.SendReport($report) } catch { Close-FeirSlot $slot }
@@ -233,6 +297,9 @@ try {
             }
             if ($tray.Text -ne $trayText) { $tray.Text = $trayText }
             if ($form.Visible) { Update-FeirStatus }
+            if ($session.PreviewWindow -and -not $session.PreviewWindow.IsDisposed -and $session.PreviewWindow.Visible) {
+                Update-FeirControllerPreview
+            }
         }
         Start-Sleep -Milliseconds 8
     }
@@ -250,6 +317,11 @@ finally {
     $mutex.ReleaseMutex()
     $mutex.Dispose()
 }
+
+
+
+
+
 
 
 

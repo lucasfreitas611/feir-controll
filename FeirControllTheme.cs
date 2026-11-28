@@ -46,6 +46,156 @@ namespace Feir
         }
     }
 
+    public sealed class ControllerPreview : Control
+    {
+        private static readonly Color Active = Color.FromArgb(110, 231, 183);
+        private static readonly Color Idle = Color.FromArgb(32, 53, 43);
+        private static readonly Color Edge = Color.FromArgb(94, 126, 109);
+        private readonly int[] masks;
+        private int buttons = 8;
+        private int lx = 128, ly = 128, rx = 128, ry = 128;
+
+        public ControllerPreview(int[] buttonMasks)
+        {
+            masks = buttonMasks;
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+        }
+
+        public void ShowReport(int next, int leftX, int leftY, int rightX, int rightY)
+        {
+            if (buttons == next && lx == leftX && ly == leftY && rx == rightX && ry == rightY) return;
+            buttons = next;
+            lx = leftX;
+            ly = leftY;
+            rx = rightX;
+            ry = rightY;
+            Invalidate();
+        }
+
+        private bool Pressed(int index) { return (buttons & masks[index]) != 0; }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            float scale = Math.Min(Width / 560f, Height / 310f);
+            g.TranslateTransform((Width - 560 * scale) / 2, (Height - 310 * scale) / 2);
+            g.ScaleTransform(scale, scale);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using (var shell = new GraphicsPath())
+            using (var fill = new LinearGradientBrush(new Rectangle(55, 66, 450, 222),
+                Color.FromArgb(213, 216, 220), Color.FromArgb(150, 156, 164), LinearGradientMode.Vertical))
+            using (var outline = new Pen(Color.FromArgb(93, 101, 111), 2))
+            {
+                shell.AddBezier(145, 67, 104, 61, 80, 104, 69, 150);
+                shell.AddBezier(69, 150, 57, 199, 49, 257, 68, 283);
+                shell.AddBezier(68, 283, 96, 319, 134, 277, 160, 238);
+                shell.AddBezier(160, 238, 175, 216, 181, 223, 206, 237);
+                shell.AddBezier(206, 237, 226, 251, 251, 243, 266, 226);
+                shell.AddLine(266, 226, 294, 226);
+                shell.AddBezier(294, 226, 309, 243, 334, 251, 354, 237);
+                shell.AddBezier(354, 237, 379, 223, 385, 216, 400, 238);
+                shell.AddBezier(400, 238, 426, 277, 464, 319, 492, 283);
+                shell.AddBezier(492, 283, 511, 257, 503, 199, 491, 150);
+                shell.AddBezier(491, 150, 480, 104, 456, 61, 415, 67);
+                shell.CloseFigure();
+                g.FillPath(fill, shell);
+                g.DrawPath(outline, shell);
+            }
+            DrawKey(g, 115, 18, 80, 24, "L2", Pressed(6));
+            DrawKey(g, 365, 18, 80, 24, "R2", Pressed(7));
+            DrawKey(g, 108, 47, 94, 24, "L1", Pressed(4));
+            DrawKey(g, 358, 47, 94, 24, "R1", Pressed(5));
+            DrawKey(g, 218, 123, 56, 22, "SELECT", Pressed(8));
+            DrawKey(g, 286, 123, 56, 22, "START", Pressed(9));
+
+            using (var well = new SolidBrush(Color.FromArgb(167, 173, 182)))
+            {
+                g.FillEllipse(well, 99, 99, 116, 116);
+                g.FillEllipse(well, 345, 99, 116, 116);
+            }
+
+            int directions = DirectionalPad.Directions(buttons & 15);
+            DrawKey(g, 143, 111, 30, 30, "↑", (directions & 1) != 0);
+            DrawKey(g, 175, 143, 30, 30, "→", (directions & 2) != 0);
+            DrawKey(g, 143, 175, 30, 30, "↓", (directions & 4) != 0);
+            DrawKey(g, 111, 143, 30, 30, "←", (directions & 8) != 0);
+
+            DrawFaceKey(g, 403, 121, 0, Color.FromArgb(122, 235, 193));
+            DrawFaceKey(g, 439, 157, 1, Color.FromArgb(255, 139, 148));
+            DrawFaceKey(g, 403, 193, 2, Color.FromArgb(158, 186, 255));
+            DrawFaceKey(g, 367, 157, 3, Color.FromArgb(241, 160, 216));
+            DrawStick(g, 232, 198, lx, ly, "L3", Pressed(10));
+            DrawStick(g, 328, 198, rx, ry, "R3", Pressed(11));
+        }
+
+        private void DrawFaceKey(Graphics g, int x, int y, int index, Color symbolColor)
+        {
+            bool pressed = Pressed(index);
+            DrawKey(g, x - 16, y - 16, 32, 32, String.Empty, pressed, true);
+            using (var stroke = new Pen(pressed ? Color.FromArgb(16, 40, 30) : symbolColor, 2f))
+            {
+                stroke.LineJoin = LineJoin.Round;
+                stroke.StartCap = LineCap.Round;
+                stroke.EndCap = LineCap.Round;
+                switch (index)
+                {
+                    case 0:
+                        g.DrawPolygon(stroke, new[] { new Point(x, y - 7), new Point(x + 8, y + 6), new Point(x - 8, y + 6) });
+                        break;
+                    case 1:
+                        g.DrawEllipse(stroke, x - 7, y - 7, 14, 14);
+                        break;
+                    case 2:
+                        g.DrawLine(stroke, x - 6, y - 6, x + 6, y + 6);
+                        g.DrawLine(stroke, x - 6, y + 6, x + 6, y - 6);
+                        break;
+                    case 3:
+                        g.DrawRectangle(stroke, x - 6, y - 6, 12, 12);
+                        break;
+                }
+            }
+        }
+
+        private void DrawKey(Graphics g, int x, int y, int width, int height, string text, bool pressed,
+            bool circle = false)
+        {
+            var area = new Rectangle(x, y, width, height);
+            using (var fill = new SolidBrush(pressed ? Active : Idle))
+            using (var outline = new Pen(Edge))
+            {
+                if (circle)
+                {
+                    g.FillEllipse(fill, area);
+                    g.DrawEllipse(outline, area);
+                }
+                else
+                {
+                    using (var rounded = RoundedPaint.Shape(area, 6))
+                    {
+                        g.FillPath(fill, rounded);
+                        g.DrawPath(outline, rounded);
+                    }
+                }
+            }
+            FeirTypography.Draw(g, text, Font, pressed ? Color.FromArgb(10, 28, 20) : ForeColor,
+                area, StringAlignment.Center);
+        }
+
+        private void DrawStick(Graphics g, int x, int y, int axisX, int axisY, string text, bool pressed)
+        {
+            using (var outline = new Pen(Edge))
+            {
+                g.DrawEllipse(outline, x - 33, y - 33, 66, 66);
+                g.DrawLine(outline, x - 27, y, x + 27, y);
+                g.DrawLine(outline, x, y - 27, x, y + 27);
+            }
+            DrawKey(g, x - 14 + (axisX - 128) * 14 / 128,
+                y - 14 + (axisY - 128) * 14 / 128, 28, 28, text, pressed, true);
+        }
+    }
+
     public static class DeviceOrigin
     {
         [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
@@ -315,6 +465,10 @@ namespace Feir
         }
     }
 }
+
+
+
+
 
 
 

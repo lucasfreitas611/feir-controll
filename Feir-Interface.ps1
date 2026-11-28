@@ -56,10 +56,11 @@ function New-FeirButton($text, $left, $top, $width, $background) {
 $form = [Feir.SignalForm]::new()
 $form.Text = 'Feir Controll'
 $form.ClientSize = [Drawing.Size]::new(870, 650)
-$form.FormBorderStyle = 'FixedDialog'
-$form.MaximizeBox = $false
+$form.FormBorderStyle = 'Sizable'
+$form.MaximizeBox = $true
 $form.StartPosition = 'CenterScreen'
 $form.AutoScaleMode = 'Dpi'
+$form.AutoScaleDimensions = [Drawing.SizeF]::new(96, 96)
 $form.Icon = [Drawing.Icon]::new((Join-Path $env:FEIR_BRIDGE_DIR 'Feir-Controll.ico'), 48, 48)
 $windowIcon = $form.Icon
 $form.add_Disposed({ $windowIcon.Dispose() }.GetNewClosure())
@@ -128,12 +129,13 @@ $buttonIcons = New-Object Windows.Forms.ImageList
 $buttonIcons.ColorDepth = 'Depth32Bit'
 $buttonIcons.ImageSize = [Drawing.Size]::new(26, 22)
 $colors = '#68D7AD','#FF858A','#83ADFF','#EAA9E9'
-$badges = 'L1','R1','L2','R2','↖','≡','L3','R3'
+$mappingIndices = 0..([Feir.DirectionalPad]::InputCount - 1)
+$badges = 'L1','R1','L2','R2','↖','≡','L3','R3','↑','→','↓','←'
 $iconFont = [Drawing.Font]::new('Segoe UI', 10, [Drawing.FontStyle]::Bold, [Drawing.GraphicsUnit]::Pixel)
 $alignment = New-Object Drawing.StringFormat
 $alignment.Alignment = 'Center'
 $alignment.LineAlignment = 'Center'
-foreach ($index in 0..11) {
+foreach ($index in $mappingIndices) {
     $bitmap = New-Object Drawing.Bitmap(26, 22)
     $graphics = [Drawing.Graphics]::FromImage($bitmap)
     $graphics.SmoothingMode = 'AntiAlias'
@@ -164,27 +166,32 @@ $list.SmallImageList = $buttonIcons
 $form.add_Disposed({ $buttonIcons.Dispose() }.GetNewClosure())
 
 
-$names = @('Triângulo','Círculo','Cruz (×)','Quadrado','L1','R1','L2','R2','Share (Select)','Options (Start)','L3','R3')
-$baseInputs = @('Desativado','Triângulo [1]','Círculo [2]','Cruz [3]','Quadrado [4]','L1 [5]','R1 [6]','L2 [7]','R2 [8]','Select [9]','Start [10]','L3 [11]','R3 [12]')
+$names = @('Triângulo','Círculo','Cruz (×)','Quadrado','L1','R1','L2','R2','Share (Select)','Options (Start)','L3','R3','Direcional para cima','Direcional para a direita','Direcional para baixo','Direcional para a esquerda')
+$baseInputs = @('Desativado','Triângulo [1]','Círculo [2]','Cruz [3]','Quadrado [4]','L1 [5]','R1 [6]','L2 [7]','R2 [8]','Select [9]','Start [10]','L3 [11]','R3 [12]','Direcional para cima','Direcional para a direita','Direcional para baixo','Direcional para a esquerda')
 $session.InputNames = $baseInputs
 $session.Slots = @(
-    @{ Path = (Join-Path $env:FEIR_BRIDGE_DIR 'perfil-feir.json'); Connected = $false; Input = [bool[]]::new(12) }
-    @{ Path = (Join-Path $env:FEIR_BRIDGE_DIR 'perfil-feir-2.json'); Connected = $false; Input = [bool[]]::new(12) }
+    @{ Path = (Join-Path $env:FEIR_BRIDGE_DIR 'perfil-feir.json'); Connected = $false; Input = [bool[]]::new([Feir.DirectionalPad]::InputCount); PendingInput = [bool[]]::new([Feir.DirectionalPad]::InputCount) }
+    @{ Path = (Join-Path $env:FEIR_BRIDGE_DIR 'perfil-feir-2.json'); Connected = $false; Input = [bool[]]::new([Feir.DirectionalPad]::InputCount); PendingInput = [bool[]]::new([Feir.DirectionalPad]::InputCount) }
 )
 foreach ($slot in $session.Slots) {
-    $slot.Map = [int[]](0..11)
+    $slot.Map = [int[]]($mappingIndices)
     if (Test-Path -LiteralPath $slot.Path) {
         try {
             $loaded = ConvertFrom-Json -InputObject (Get-Content -LiteralPath $slot.Path -Raw)
-            if ($loaded.Count -ne 12 -or @($loaded | Where-Object { $_ -isnot [int] -or $_ -lt -1 -or $_ -gt 11 }).Count) {
+            $legacy = $loaded.Count -eq [Feir.DirectionalPad]::FirstDirection
+            $maxInput = $loaded.Count - 1
+            if ((-not $legacy -and $loaded.Count -ne $mappingIndices.Count) -or
+                @($loaded | Where-Object { $_ -isnot [int] -or $_ -lt -1 -or $_ -gt $maxInput }).Count) {
                 throw 'Mapeamento inválido'
             }
+            if ($legacy) { $loaded = @($loaded) + ([Feir.DirectionalPad]::FirstDirection..($mappingIndices.Count - 1)) }
             $slot.Map = [int[]]$loaded
         } catch { $status.Text = & $translate 'Perfil inválido. Padrão carregado.' }
     }
     $slot.Draft = [int[]]$slot.Map.Clone()
+    $slot.DigitalDpad = $false
 }
-foreach ($index in 0..11) {
+foreach ($index in $mappingIndices) {
     $row = $list.Items.Add($names[$index], $index)
     $null = $row.SubItems.Add($session.InputNames[1 + $session.Slots[$session.Selected].Draft[$index]])
     $null = $row.SubItems.Add("—")
@@ -198,7 +205,7 @@ $picker.Items.AddRange([object[]]$session.InputNames)
 $form.Controls.Add($picker)
 $learn = New-FeirButton 'Detectar botão' 541 493 140 '#1A2922'
 $reset = New-FeirButton 'Restaurar padrão' 695 493 149 '#1A2922'
-$hint = New-FeirLabel 'O direcional e os analógicos seguem o mapeamento original.' 264 546 580 30 '#C0D7CA' 9
+$hint = New-FeirLabel 'Use a lista para remapear os botões e o direcional.' 264 546 580 30 '#C0D7CA' 9
 $save = New-FeirButton 'Salvar mapeamento' 657 589 187 '#176044'
 $hide = New-FeirButton 'Ocultar janela' 24 589 206 '#1A2922'
 
@@ -354,7 +361,7 @@ $learn.add_Click({
 }.GetNewClosure())
 $reset.add_Click({
     $session.LearnIndex = -1
-    foreach ($index in 0..11) {
+    foreach ($index in $mappingIndices) {
         $session.Slots[$session.Selected].Draft[$index] = $index
         $list.Items[$index].SubItems[1].Text = $session.InputNames[$index + 1]
     }
@@ -415,7 +422,7 @@ foreach ($slotIndex in 0..1) {
         & $syncRumbleControls
         $session.LearnIndex = -1
         $slot = $session.Slots[$slotIndex]
-        foreach ($index in 0..11) {
+        foreach ($index in $mappingIndices) {
             $list.Items[$index].SubItems[1].Text = $session.InputNames[1 + $slot.Draft[$index]]
         }
         foreach ($i in 0..1) {
@@ -447,7 +454,10 @@ $detect.add_Click({
     $session.ScanRequested = $true
     $hint.Text = & $translate 'Aguardando leitura dos dispositivos…'
 }.GetNewClosure())
+$testController = New-FeirButton 'Testar controle' 264 589 187 '#1A2922'
+$testController.add_Click({ $session.PreviewRequested = $true }.GetNewClosure())
 $captions = @(
+    @{ Control = $testController; Text = 'Testar controle' }
     @{ Control = $status; Text = 'Controle USB  /  DualShock 4 virtual' }
     @{ Control = $mappingTitle; Text = 'Mapeamento de botões' }
     @{ Control = $section; Text = 'Controles' }
@@ -488,7 +498,7 @@ $applyLanguage = {
         $list.Items[$i].SubItems[1].Text = $session.InputNames[1 + $slot.Draft[$i]]
     }
     $hint.Text = & $translate $(if (($slot.Draft -join ',') -eq ($slot.Map -join ',')) {
-        'O direcional e os analógicos seguem o mapeamento original.'
+        'Use a lista para remapear os botões e o direcional.'
     } else { 'Alteração pendente. Clique em Salvar mapeamento.' })
 }.GetNewClosure()
 & $applyLanguage
@@ -511,6 +521,34 @@ $rowColors = @(
     [Drawing.ColorTranslator]::FromHtml('#131F19')
     [Drawing.ColorTranslator]::FromHtml('#17261E')
 )
+$banner.Anchor = 'Top, Left, Right'
+$table.Anchor = 'Top, Bottom, Left, Right'
+$list.Anchor = 'Top, Bottom, Left, Right'
+foreach ($control in @($languageLabel, $language)) { $control.Anchor = 'Top, Right' }
+foreach ($control in @($learn, $reset, $save)) { $control.Anchor = 'Bottom, Right' }
+foreach ($control in @($hide, $testController, $hint)) { $control.Anchor = 'Bottom, Left' }
+$picker.Anchor = 'Bottom, Left, Right'
+
+$layoutColumns = {
+    $width = $list.ClientSize.Width
+    if ($width -le 0) { return }
+    $first = [int]($width * 0.36)
+    $second = [int]($width * 0.41)
+    $list.Columns[0].Width = $first
+    $list.Columns[1].Width = $second
+    $list.Columns[2].Width = $width - $first - $second
+    $headings[0].Width = $first - ($headings[0].Left - $list.Left)
+    $headings[1].Left = $list.Left + $first
+    $headings[1].Width = $second
+    $headings[2].Left = $list.Left + $first + $second
+    $headings[2].Width = $width - $first - $second
+}.GetNewClosure()
+$list.add_SizeChanged($layoutColumns)
+$form.add_Shown({
+    $form.MinimumSize = $form.Size
+    & $layoutColumns
+}.GetNewClosure())
+
 function Update-FeirStatus {
     foreach ($i in 0..1) {
         $label = $slotStatus[$i]
@@ -523,7 +561,7 @@ function Update-FeirStatus {
     }
     $slot = $session.Slots[$session.Selected]
     $vibration.Enabled = $null -ne $slot.Rumble
-    foreach ($i in 0..11) {
+    foreach ($i in $mappingIndices) {
         $physical = $slot.Draft[$i]
         $pressed = $slot.Connected -and $physical -ge 0 -and $slot.Input[$physical]
         $row = $list.Items[$i]
@@ -533,6 +571,12 @@ function Update-FeirStatus {
         if ($row.BackColor -ne $color) { $row.BackColor = $color }
     }
 }
+
+
+
+
+
+
 
 
 

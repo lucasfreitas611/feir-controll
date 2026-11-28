@@ -2,7 +2,7 @@
 
 Mapeador comunitário para Windows que transforma controles USB compatíveis com o Feir em um DualShock 4 virtual. Projeto independente da Feir e da Sony.
 
-- Remapeamento de 12 botões e perfis separados para até dois controles.
+- Remapeamento de 12 botões e das quatro setas do direcional e perfis separados para até dois controles.
 - Vibração em jogos, com teste por controle e intensidades de 100%, 160% e 200%.
 - Detecção de controles físicos, com apresentação do nome, ID USB e compatibilidade.
 - Interface em português, inglês e espanhol, modo bandeja e inicialização opcional com o Windows.
@@ -25,7 +25,7 @@ Extraia o ZIP do repositório, abra o **Windows PowerShell 5.1 x64** na pasta e 
 
 ## Uso
 
-Conecte seu controle, abra o aplicativo e use **Detectar controles** para conferir a compatibilidade. Selecione **Controle 1** ou **Controle 2**. Para remapear, escolha uma função do PlayStation e selecione o botão físico na lista ou use **Detectar botão**. Clique em **Salvar mapeamento** para aplicar.
+Conecte seu controle, abra o aplicativo e use **Detectar controles** para conferir a compatibilidade. Selecione **Controle 1** ou **Controle 2**. Para remapear, escolha uma função do PlayStation e selecione o botão físico na lista ou use **Detectar botão**. Clique em **Salvar mapeamento** para aplicar. Role a tabela até o fim para encontrar as quatro setas do direcional. Use **Testar controle** para conferir os botões, as diagonais do direcional e os dois analógicos do controle selecionado em tempo real. O desenho usa o mapeamento salvo.
 
 Na Steam, selecione o **PS4 Controller** virtual e ative **Vibração do jogo**. O controle físico também pode aparecer na lista. No Feir Controll, marque **Vibração nos jogos** e ajuste **Intensidade nos jogos**. O resultado depende do jogo e dos motores do controle.
 
@@ -46,4 +46,9 @@ O código original do Feir Controll está sob a [licença MIT](LICENSE). O insta
 - **Analógicos sem resposta:** confira o botão **ANALOG** do controle físico.
 - **Sem vibração:** teste primeiro pelo aplicativo, depois pela Steam no **PS4 Controller** virtual.
 - **Dois controles aparecem na Steam:** escolha o PS4 virtual para usar o mapeamento e a vibração.
+
+
+
+
+- **Botão ANALOG:** no Feir testado, com a luz apagada, os eixos compartilhados são interpretados como setas e os analógicos virtuais ficam centralizados. Com a luz acesa, setas e analógicos funcionam de forma independente. A detecção usa o padrão de sinais desse modelo.
 

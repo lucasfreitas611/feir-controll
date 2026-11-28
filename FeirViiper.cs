@@ -5,6 +5,72 @@ using Nefarius.ViGEm.Client.Targets.DualShock4;
 
 namespace Feir
 {
+    public static class DirectionalPad
+    {
+        public const int FirstDirection = 12;
+        public const int InputCount = 16;
+
+        // Direction bits are ordered up, right, down, left.
+        private static readonly int[] HatBits = { 1, 3, 2, 6, 4, 12, 8, 9, 0 };
+        private static readonly int[] HatValues = { 8, 0, 2, 1, 4, 8, 3, 8, 6, 7, 8, 8, 5, 8, 8, 8 };
+
+        public static int Directions(int hat)
+        {
+            return hat >= 0 && hat < HatBits.Length ? HatBits[hat] : 0;
+        }
+
+        public static void Read(bool[] buttons, int[] pov, bool[] input)
+        {
+            Array.Clear(input, 0, FirstDirection);
+            Array.Copy(buttons, input, Math.Min(buttons.Length, FirstDirection));
+            int directions = pov.Length > 0 && pov[0] >= 0 ? Directions((pov[0] / 4500) % 8) : 0;
+            for (int i = 0; i < 4; i++)
+                input[FirstDirection + i] = (directions & (1 << i)) != 0;
+        }
+
+        public static bool IsDigitalMode(int x, int y, int z, int rotationZ, int[] pov, bool previous)
+        {
+            // The sampled Feir reports 0x7eff as the X/Y center in digital mode.
+            // An endpoint on both axes alone can also be an analog stick at a corner.
+            const int digitalCenter = 32511;
+            const int rightCenter = 32767;
+            if ((pov.Length > 0 && pov[0] >= 0) || z != rightCenter || rotationZ != rightCenter)
+                return false;
+            if (!IsDigitalAxis(x, digitalCenter) || !IsDigitalAxis(y, digitalCenter))
+                return false;
+            return x == digitalCenter || y == digitalCenter || previous;
+        }
+
+        private static bool IsDigitalAxis(int value, int center)
+        {
+            return value == 0 || value == center || value == 65535;
+        }
+
+        public static void ReadDigitalAxes(int x, int y, bool[] input)
+        {
+            input[FirstDirection] = y < 16384;
+            input[FirstDirection + 1] = x > 49151;
+            input[FirstDirection + 2] = y > 49151;
+            input[FirstDirection + 3] = x < 16384;
+        }
+
+        public static ushort MapReport(bool[] input, int[] map, int[] buttonMasks)
+        {
+            int buttons = 0;
+            for (int i = 0; i < buttonMasks.Length; i++)
+                if (map[i] >= 0 && input[map[i]]) buttons |= buttonMasks[i];
+
+            int directions = 0;
+            for (int i = 0; i < 4; i++)
+                if (map[FirstDirection + i] >= 0 && input[map[FirstDirection + i]]) directions |= 1 << i;
+
+            // A DS4 hat cannot encode opposite directions. Cancel each opposing pair.
+            if ((directions & 5) == 5) directions &= ~5;
+            if ((directions & 10) == 10) directions &= ~10;
+            return (ushort)(buttons | HatValues[directions]);
+        }
+    }
+
     public sealed class ViiperServer : IDisposable
     {
         private const string Library = "libVIIPER.dll";
@@ -129,4 +195,7 @@ namespace Feir
         }
     }
 }
+
+
+
 

@@ -1,5 +1,11 @@
-﻿{
+{
   "en": {
+    "Direcional para cima": "D-pad up",
+    "Direcional para a direita": "D-pad right",
+    "Direcional para baixo": "D-pad down",
+    "Direcional para a esquerda": "D-pad left",
+    "Testar controle": "Test controller",
+    "Mostra a saída do DualShock 4 com o mapeamento salvo.": "Shows the DualShock 4 output using the saved mapping.",
     "Controle USB  /  DualShock 4 virtual": "USB controller  /  Virtual DualShock 4",
     "Mapeamento de botões": "Button mapping",
     "Controles": "Controllers",
@@ -33,7 +39,7 @@
     "Círculo [2]": "Circle [2]",
     "Cruz [3]": "Cross [3]",
     "Quadrado [4]": "Square [4]",
-    "O direcional e os analógicos seguem o mapeamento original.": "The D-pad and sticks use the original mapping.",
+    "Use a lista para remapear os botões e o direcional.": "Use the list to remap buttons and D-pad directions.",
     "Alteração pendente. Clique em Salvar mapeamento.": "Unsaved changes. Select Save mapping.",
     "Intensidade aplicada ao controle selecionado.": "Vibration strength applied to the selected controller.",
     "Não foi possível salvar a intensidade.": "Could not save vibration strength.",
@@ -64,6 +70,12 @@
     "Não foi possível salvar o idioma.": "Could not save the language."
   },
   "es": {
+    "Direcional para cima": "Cruceta arriba",
+    "Direcional para a direita": "Cruceta derecha",
+    "Direcional para baixo": "Cruceta abajo",
+    "Direcional para a esquerda": "Cruceta izquierda",
+    "Testar controle": "Probar mando",
+    "Mostra a saída do DualShock 4 com o mapeamento salvo.": "Muestra la salida del DualShock 4 con la asignación guardada.",
     "Controle USB  /  DualShock 4 virtual": "Control USB  /  DualShock 4 virtual",
     "Mapeamento de botões": "Asignación de botones",
     "Controles": "Mandos",
@@ -97,7 +109,7 @@
     "Círculo [2]": "Círculo [2]",
     "Cruz [3]": "Cruz [3]",
     "Quadrado [4]": "Cuadrado [4]",
-    "O direcional e os analógicos seguem o mapeamento original.": "La cruceta y los joysticks conservan la asignación original.",
+    "Use a lista para remapear os botões e o direcional.": "Usa la lista para reasignar los botones y la cruceta.",
     "Alteração pendente. Clique em Salvar mapeamento.": "Cambios pendientes. Selecciona Guardar asignación.",
     "Intensidade aplicada ao controle selecionado.": "Intensidad aplicada al mando seleccionado.",
     "Não foi possível salvar a intensidade.": "No se pudo guardar la intensidad.",
@@ -128,4 +140,8 @@
     "Não foi possível salvar o idioma.": "No se pudo guardar el idioma."
   }
 }
+
+
+
+
 
